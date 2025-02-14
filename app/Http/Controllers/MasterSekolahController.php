@@ -4,98 +4,118 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Exception;
 
 class MasterSekolahController extends Controller
 {
-    // Menampilkan semua data sekolah
+    // Menampilkan semua data sekolah yang tidak dihapus
     public function index()
     {
-        $sekolah = DB::table('master_sekolah')->get();
-        return response()->json($sekolah);
+        try {
+            $sekolah = DB::table('master_sekolah')->where('is_delete', 0)->get();
+            return response()->json([
+                'success' => true,
+                'message' => 'Data sekolah berhasil diambil',
+                'data' => $sekolah
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data sekolah',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     // Menampilkan detail sekolah berdasarkan ID
     public function show($id)
     {
-        $sekolah = DB::table('master_sekolah')->where('id', $id)->first();
-        if (!$sekolah) {
-            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        try {
+            $sekolah = DB::table('master_sekolah')->where('id', $id)->where('is_delete', 0)->first();
+
+            if (!$sekolah) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data tidak ditemukan'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data sekolah ditemukan',
+                'data' => $sekolah
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data sekolah',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        return response()->json($sekolah);
     }
 
     // Menambahkan data sekolah baru
     public function store(Request $request)
     {
-        $id = DB::table('master_sekolah')->insertGetId([
-            'kode_prop' => $request->kode_prop,
-            'propinsi' => $request->propinsi,
-            'kode_kab_kota' => $request->kode_kab_kota,
-            'kabupaten_kota' => $request->kabupaten_kota,
-            'kode_kec' => $request->kode_kec,
-            'kecamatan' => $request->kecamatan,
-            'npsn' => $request->npsn,
-            'sekolah' => $request->sekolah,
-            'bentuk' => $request->bentuk,
-            'status' => $request->status,
-            'alamat_jalan' => $request->alamat_jalan,
-            'lintang' => $request->lintang,
-            'bujur' => $request->bujur,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        try {
+            $id = DB::table('master_sekolah')->insertGetId([
+                'kode_prop' => $request->kode_prop,
+                'propinsi' => $request->propinsi,
+                'kode_kab_kota' => $request->kode_kab_kota,
+                'kabupaten_kota' => $request->kabupaten_kota,
+                'kode_kec' => $request->kode_kec,
+                'kecamatan' => $request->kecamatan,
+                'npsn' => $request->npsn,
+                'sekolah' => $request->sekolah,
+                'bentuk' => $request->bentuk,
+                'status' => $request->status,
+                'alamat_jalan' => $request->alamat_jalan,
+                'lintang' => $request->lintang,
+                'bujur' => $request->bujur,
+                'is_delete' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-        return response()->json(['message' => 'Data berhasil ditambahkan', 'id' => $id], 201);
+            $newData = DB::table('master_sekolah')->where('id', $id)->first();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil ditambahkan',
+                'data' => $newData
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menambahkan data sekolah',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    public function update(Request $request, $id)
-{
-    // Ambil hanya input yang dikirim dalam request
-    $dataToUpdate = array_filter($request->only([
-        'kode_prop',
-        'propinsi',
-        'kode_kab_kota',
-        'kabupaten_kota',
-        'kode_kec',
-        'kecamatan',
-        'npsn',
-        'sekolah',
-        'bentuk',
-        'status',
-        'alamat_jalan',
-        'lintang',
-        'bujur'
-    ]));
-
-    // Tambahkan updated_at agar tetap diperbarui
-    $dataToUpdate['updated_at'] = now();
-
-    // Jika tidak ada data yang dikirim, kembalikan response error
-    if (empty($dataToUpdate)) {
-        return response()->json(['message' => 'Tidak ada data yang diperbarui'], 400);
-    }
-
-    // Update hanya field yang diberikan
-    $affected = DB::table('master_sekolah')->where('id', $id)->update($dataToUpdate);
-
-    if (!$affected) {
-        return response()->json(['message' => 'Data tidak ditemukan atau tidak ada perubahan'], 404);
-    }
-
-    return response()->json(['message' => 'Data berhasil diperbarui']);
-}
-
-    
-
-    // Menghapus data sekolah berdasarkan ID
+    // Soft delete data sekolah
     public function destroy($id)
     {
-        $deleted = DB::table('master_sekolah')->where('id', $id)->delete();
+        try {
+            $affected = DB::table('master_sekolah')->where('id', $id)->update(['is_delete' => 1, 'updated_at' => now()]);
 
-        if (!$deleted) {
-            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+            if (!$affected) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data tidak ditemukan atau sudah dihapus'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil dihapus'
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus data sekolah',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['message' => 'Data berhasil dihapus']);
     }
 }
