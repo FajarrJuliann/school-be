@@ -46,8 +46,6 @@ class MasterSekolahController extends Controller
         }
     }
 
-
-
     // Menampilkan detail sekolah berdasarkan ID
     public function show($id)
     {
