@@ -19,4 +19,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sekolah', [MasterSekolahController::class, 'store']);
     Route::put('/sekolah/{id}', [MasterSekolahController::class, 'update']);
     Route::delete('/sekolah/{id}', [MasterSekolahController::class, 'destroy']);
+
+    Route::get('/sekolah/bentuk/{bentuk}', [MasterSekolahController::class, 'filterByBentuk']);
 });

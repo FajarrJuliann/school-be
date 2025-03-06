@@ -46,6 +46,48 @@ class MasterSekolahController extends Controller
         }
     }
 
+    public function filterByBentuk($bentuk)
+    {
+        try {
+            $allowedBentuk = ['SD', 'SMP', 'SMA', 'SMK'];
+            if (!in_array(strtoupper($bentuk), $allowedBentuk)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Jenis sekolah tidak valid. Gunakan SD, SMP, SMA, atau SMK.'
+                ], 400);
+            }
+
+            $query = DB::table('master_sekolah')
+                ->where('is_delete', 0)
+                ->where('bentuk', strtoupper($bentuk));
+
+            // Tambahkan filter pencarian jika ada parameter 'search'
+            if (request()->has('search') && !empty(request('search'))) {
+                $search = request('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('sekolah', 'ILIKE', "%$search%");
+                    // ->orWhere('alamat_jalan', 'ILIKE', "%$search%")
+                    // ->orWhere('kabupaten_kota', 'ILIKE', "%$search%");
+                });
+            }
+
+            $sekolah = $query->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Data sekolah dengan bentuk $bentuk berhasil diambil",
+                'data' => $sekolah
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data sekolah',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     // Menampilkan detail sekolah berdasarkan ID
     public function show($id)
     {
